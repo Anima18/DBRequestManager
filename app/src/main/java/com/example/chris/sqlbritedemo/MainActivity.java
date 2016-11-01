@@ -10,6 +10,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.example.chris.requestmanager.DBManager;
 import com.example.chris.requestmanager.DBRequest;
 import com.example.chris.requestmanager.entity.CollectionCallBack;
 import com.example.chris.sqlbritedemo.entity.People;
@@ -65,7 +66,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         dataLv.setAdapter(adapter);
         dataLv.setLayoutManager(new LinearLayoutManager(this));
 
-        DBRequest.getInstance().getCollection(PeopleTable.TABLE_NAME, "SELECT * FROM " + PeopleTable.TABLE_NAME, null,  PeopleTable.PERSON_MAPPER, getSubscriber());
+        search();
     }
 
     private void initEvent() {
@@ -102,7 +103,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             people.setName(name);
         }
 
-        DBRequest.getInstance().update(PeopleTable.TABLE_NAME, PeopleTable.toContentValues(people), "_id = ?", new String[] {people.getId()+""});
+        DBManager.getInstance().update(PeopleTable.TABLE_NAME, PeopleTable.toContentValues(people), "_id = ?", new String[] {people.getId()+""});
 
         nameEt.setText("");
         people = null;
@@ -114,7 +115,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             Toast.makeText(this, "请选择一条记录", Toast.LENGTH_SHORT).show();
             return;
         }else {
-            DBRequest.getInstance().delete(PeopleTable.TABLE_NAME, "_id = ?", new String[] {people.getId()+""});
+            DBManager.getInstance().delete(PeopleTable.TABLE_NAME, "_id = ?", new String[] {people.getId()+""});
             nameEt.setText("");
             people = null;
         }
@@ -128,7 +129,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         People people = new People(name, 25);
-        DBRequest.getInstance().add(PeopleTable.TABLE_NAME, PeopleTable.toContentValues(people));
+        DBRequest
+                .create()
+                .tableName(PeopleTable.TABLE_NAME)
+                .contentValues(PeopleTable.toContentValues(people))
+                .add();
+
         nameEt.setText("");
         search();
         Log.i(TAG, "Queries: " + queries.get());
@@ -136,11 +142,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void search() {
         String name = nameEt.getText().toString().trim();
-
         if(name == null || "".equals(name)) {
-            DBRequest.getInstance().getCollection(PeopleTable.TABLE_NAME, "SELECT * FROM " + PeopleTable.TABLE_NAME, null, PeopleTable.PERSON_MAPPER, getSubscriber());
+            DBRequest.create()
+                    .tableName(PeopleTable.TABLE_NAME)
+                    .querySql("SELECT * FROM " + PeopleTable.TABLE_NAME)
+                    .mapper(PeopleTable.PERSON_MAPPER)
+                    .getList(getSubscriber());
+            //DBManager.getInstance().getCollection(PeopleTable.TABLE_NAME, "SELECT * FROM " + PeopleTable.TABLE_NAME, null, PeopleTable.PERSON_MAPPER, getSubscriber());
         }else {
-            DBRequest.getInstance().getCollection(PeopleTable.TABLE_NAME, "SELECT * FROM " + PeopleTable.TABLE_NAME + " where name = ?", new String[]{name}, PeopleTable.PERSON_MAPPER, getSubscriber());
+            DBRequest.create()
+                    .tableName(PeopleTable.TABLE_NAME)
+                    .querySql("SELECT * FROM " + PeopleTable.TABLE_NAME+ " where name = ?")
+                    .whereArgs(new String[]{name})
+                    .mapper(PeopleTable.PERSON_MAPPER)
+                    .getList(getSubscriber());
+            //DBManager.getInstance().getCollection(PeopleTable.TABLE_NAME, "SELECT * FROM " + PeopleTable.TABLE_NAME + " where name = ?", new String[]{name}, PeopleTable.PERSON_MAPPER, getSubscriber());
         }
     }
 

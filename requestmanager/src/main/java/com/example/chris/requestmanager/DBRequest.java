@@ -2,138 +2,76 @@ package com.example.chris.requestmanager;
 
 import android.content.ContentValues;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteOpenHelper;
 
 import com.example.chris.requestmanager.entity.CollectionCallBack;
-import com.example.chris.requestmanager.entity.DataCallBack;
-import com.squareup.sqlbrite.BriteDatabase;
-import com.squareup.sqlbrite.SqlBrite;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
-import rx.Subscriber;
-import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Func1;
-import rx.schedulers.Schedulers;
 
 /**
- * Created by Admin on 2016/10/31.
+ * Created by Admin on 2016/11/1.
  */
 
-public class DBRequest {
+public class DBRequest<T> {
+    private String tableName;
+    private List<ContentValues> contentValues = new ArrayList<>();
+    private String querySql;
+    private String[] whereArgs;
+    private Func1<Cursor, T> mapper;
 
-    private static AtomicInteger openCount = new AtomicInteger();
-    private static DBRequest instance;
-    private static SQLiteOpenHelper openHelper;
-    private static final String TAG = "DBRequest";
-    // rx响应式数据库,
-    private static SqlBrite sqlBrite;
-    private static BriteDatabase db;
 
-    public static synchronized DBRequest getInstance() {
-        if (null == instance) {
-            throw new IllegalStateException(DBRequest.class.getSimpleName()
-                    + " is not initialized, call initialize(..) method first.");
+    private DBRequest() {}
+
+    public static DBRequest create() {
+        return new DBRequest();
+    }
+
+    public void add() {
+        if(tableName == null) {
+            throw new NullPointerException("tableName is null");
+        }else if(contentValues.size() == 0) {
+            throw new NullPointerException("contentValues is null");
         }
-        return instance;
+        DBManager.getInstance().add(tableName, contentValues);
     }
 
-    public static synchronized void initialize(SQLiteOpenHelper helper) {
-        if (null == instance) {
-            instance = new DBRequest();
+    public void getList(CollectionCallBack<T> callBack) {
+        if(tableName == null) {
+            throw new NullPointerException("tableName is null");
+        }else if(querySql == null) {
+            throw new NullPointerException("querySql is null");
+        }else if(mapper == null) {
+            throw new NullPointerException("mapper is null");
+        }else if(callBack == null) {
+            throw new NullPointerException("callBack is null");
         }
-        openHelper = helper;
-        sqlBrite = SqlBrite.create(new SqlBrite.Logger() {
-            @Override
-            public void log(String message) {
-                //Logger.wtf(TAG, "log: >>>>" + message);
-            }
-        });
-        db = sqlBrite.wrapDatabaseHelper(openHelper, Schedulers.io());
-        db.setLoggingEnabled(true);
+        DBManager.getInstance().getCollection(tableName, querySql, whereArgs, mapper, callBack);
     }
 
-    public void add(String tableName, ContentValues contentValues) {
-        long rowId = db.insert(tableName, contentValues);
+    public DBRequest tableName(String tableName) {
+        this.tableName = tableName;
+        return this;
     }
 
-    public void add(String tableName, List<ContentValues> contentValuesList) {
-        BriteDatabase.Transaction transaction = db.newTransaction();
-        try {
-            for(ContentValues contentValues : contentValuesList) {
-                db.insert(tableName, contentValues);
-            }
-            transaction.markSuccessful();
-        } finally {
-            transaction.end();
-        }
+    public DBRequest contentValues(ContentValues contentValues) {
+        this.contentValues.add(contentValues);
+        return this;
     }
 
-    public <T> void getObject(String tableName, String sql, String[] whereArgs, Func1<Cursor, T> mapper, final DataCallBack<T> callBack) {
-        db.createQuery(tableName, sql, whereArgs)
-        .mapToOne(mapper)
-        .subscribeOn(Schedulers.io())
-        .observeOn(AndroidSchedulers.mainThread())
-        .subscribe(new Subscriber<T>() {
-            @Override
-            public void onCompleted() {
-                callBack.onCompleted();
-            }
-
-            @Override
-            public void onError(Throwable e) {
-                callBack.onFailure(500, e.getMessage());
-            }
-
-            @Override
-            public void onNext(T t) {
-                callBack.onSuccess(t);
-            }
-        });
+    public DBRequest querySql(String sql) {
+        this.querySql = sql;
+        return this;
     }
 
-    public <T> void getCollection(String tableName, String sql, String[] whereArgs,  Func1<Cursor, T> mapper, final CollectionCallBack<T> callBack) {
-        db.createQuery(tableName, sql, whereArgs)
-                .mapToList(mapper)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Subscriber<List<T>>() {
-                    @Override
-                    public void onCompleted() {
-                        callBack.onCompleted();
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        callBack.onFailure(500, e.getMessage());
-                        e.printStackTrace();
-                    }
-
-                    @Override
-                    public void onNext(List<T> ts) {
-                        callBack.onSuccess(ts);
-                    }
-                });
+    public DBRequest whereArgs(String[] whereArgs) {
+        this.whereArgs = whereArgs;
+        return this;
     }
 
-    public void update(String tableName, ContentValues contentValues, String whereClause, String[] whereArgs) {
-        db.update(tableName, contentValues, whereClause, whereArgs);
-    }
-
-    public void updata(String tableName, List<ContentValues> contentValuesList, String whereClause, String[] whereArgs) {
-        BriteDatabase.Transaction transaction = db.newTransaction();
-        try {
-            for(ContentValues contentValues : contentValuesList) {
-                db.update(tableName, contentValues, whereClause, whereArgs);
-            }
-            transaction.markSuccessful();
-        } finally {
-            transaction.end();
-        }
-    }
-
-    public void delete(String tableName, String whereClause, String[] whereArgs) {
-        db.delete(tableName, whereClause, whereArgs);
+    public DBRequest mapper(Func1<Cursor, T> mapper) {
+        this.mapper = mapper;
+        return this;
     }
 }
