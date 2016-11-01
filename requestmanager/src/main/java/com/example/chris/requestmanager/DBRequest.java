@@ -2,12 +2,15 @@ package com.example.chris.requestmanager;
 
 import android.content.ContentValues;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteOpenHelper;
 
 import com.example.chris.requestmanager.entity.CollectionCallBack;
 import com.example.chris.requestmanager.entity.DataCallBack;
 import com.squareup.sqlbrite.BriteDatabase;
+import com.squareup.sqlbrite.SqlBrite;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import rx.Subscriber;
 import rx.android.schedulers.AndroidSchedulers;
@@ -19,22 +22,43 @@ import rx.schedulers.Schedulers;
  */
 
 public class DBRequest {
+
+    private static AtomicInteger openCount = new AtomicInteger();
+    private static DBRequest instance;
+    private static SQLiteOpenHelper openHelper;
+    private static final String TAG = "DBRequest";
+    // rx响应式数据库,
+    private static SqlBrite sqlBrite;
     private static BriteDatabase db;
 
-    public static synchronized void initialize(BriteDatabase briteDatabase) {
-        if (briteDatabase == null) {
-            throw new NullPointerException("BriteDatabase database is null");
-        }else {
-            db = briteDatabase;
+    public static synchronized DBRequest getInstance() {
+        if (null == instance) {
+            throw new IllegalStateException(DBRequest.class.getSimpleName()
+                    + " is not initialized, call initialize(..) method first.");
         }
+        return instance;
     }
 
+    public static synchronized void initialize(SQLiteOpenHelper helper) {
+        if (null == instance) {
+            instance = new DBRequest();
+        }
+        openHelper = helper;
+        sqlBrite = SqlBrite.create(new SqlBrite.Logger() {
+            @Override
+            public void log(String message) {
+                //Logger.wtf(TAG, "log: >>>>" + message);
+            }
+        });
+        db = sqlBrite.wrapDatabaseHelper(openHelper, Schedulers.io());
+        db.setLoggingEnabled(true);
+    }
 
-    public static void add(String tableName, ContentValues contentValues) {
+    public void add(String tableName, ContentValues contentValues) {
         long rowId = db.insert(tableName, contentValues);
     }
 
-    public static void add(String tableName, List<ContentValues> contentValuesList) {
+    public void add(String tableName, List<ContentValues> contentValuesList) {
         BriteDatabase.Transaction transaction = db.newTransaction();
         try {
             for(ContentValues contentValues : contentValuesList) {
@@ -46,8 +70,8 @@ public class DBRequest {
         }
     }
 
-    public static <T> void getObject(String tableName, String sql, Func1<Cursor, T> mapper, final DataCallBack<T> callBack) {
-        db.createQuery(tableName, sql)
+    public <T> void getObject(String tableName, String sql, String[] whereArgs, Func1<Cursor, T> mapper, final DataCallBack<T> callBack) {
+        db.createQuery(tableName, sql, whereArgs)
         .mapToOne(mapper)
         .subscribeOn(Schedulers.io())
         .observeOn(AndroidSchedulers.mainThread())
@@ -69,8 +93,8 @@ public class DBRequest {
         });
     }
 
-    public static <T> void getCollection(String tableName, String sql, Func1<Cursor, T> mapper, final CollectionCallBack<T> callBack) {
-        db.createQuery(tableName, sql)
+    public <T> void getCollection(String tableName, String sql, String[] whereArgs,  Func1<Cursor, T> mapper, final CollectionCallBack<T> callBack) {
+        db.createQuery(tableName, sql, whereArgs)
                 .mapToList(mapper)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
@@ -83,6 +107,7 @@ public class DBRequest {
                     @Override
                     public void onError(Throwable e) {
                         callBack.onFailure(500, e.getMessage());
+                        e.printStackTrace();
                     }
 
                     @Override
@@ -92,4 +117,23 @@ public class DBRequest {
                 });
     }
 
+    public void update(String tableName, ContentValues contentValues, String whereClause, String[] whereArgs) {
+        db.update(tableName, contentValues, whereClause, whereArgs);
+    }
+
+    public void updata(String tableName, List<ContentValues> contentValuesList, String whereClause, String[] whereArgs) {
+        BriteDatabase.Transaction transaction = db.newTransaction();
+        try {
+            for(ContentValues contentValues : contentValuesList) {
+                db.update(tableName, contentValues, whereClause, whereArgs);
+            }
+            transaction.markSuccessful();
+        } finally {
+            transaction.end();
+        }
+    }
+
+    public void delete(String tableName, String whereClause, String[] whereArgs) {
+        db.delete(tableName, whereClause, whereArgs);
+    }
 }

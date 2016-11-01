@@ -10,29 +10,30 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import com.example.chris.sqlbritedemo.database.DatabaseManager;
+import com.example.chris.requestmanager.DBRequest;
+import com.example.chris.requestmanager.entity.CollectionCallBack;
 import com.example.chris.sqlbritedemo.entity.People;
+import com.example.chris.sqlbritedemo.entity.PeopleTable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import rx.Subscriber;
-
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
     private final static String TAG = "MainActivity";
     private EditText nameEt;
-    private EditText ageEt;
     private Button addBt;
     private Button searchBt;
+    private Button updateBt;
+    private Button deleteBt;
     private RecyclerView dataLv;
 
     private List<People> dataList = new ArrayList<>();
+    private People people;
     private MainAdapter adapter;
 
     final AtomicInteger queries = new AtomicInteger();
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -45,23 +46,33 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void initView() {
         nameEt = (EditText) findViewById(R.id.mainAct_name_et);
-        ageEt = (EditText) findViewById(R.id.mainAct_age_et);
         addBt = (Button) findViewById(R.id.mainAct_add_bt);
         searchBt = (Button) findViewById(R.id.mainAct_search_bt);
+        updateBt = (Button) findViewById(R.id.mainAct_update_bt);
+        deleteBt = (Button) findViewById(R.id.mainAct_delete_bt);
         dataLv = (RecyclerView) findViewById(R.id.mainAct_data_lv);
     }
 
     private void initData() {
         adapter = new MainAdapter(this, dataList);
+        adapter.setOnItemClickListener(new MainAdapter.OnItemClickListener() {
+            @Override
+            public void onItemClick(View itemView, int position) {
+                people = dataList.get(position);
+                nameEt.setText(people.getName());
+            }
+        });
         dataLv.setAdapter(adapter);
         dataLv.setLayoutManager(new LinearLayoutManager(this));
 
-        DatabaseManager.getInstance().queryAll().subscribe(getSubscriber());
+        DBRequest.getInstance().getCollection(PeopleTable.TABLE_NAME, "SELECT * FROM " + PeopleTable.TABLE_NAME, null,  PeopleTable.PERSON_MAPPER, getSubscriber());
     }
 
     private void initEvent() {
         addBt.setOnClickListener(this);
         searchBt.setOnClickListener(this);
+        updateBt.setOnClickListener(this);
+        deleteBt.setOnClickListener(this);
     }
 
     @Override
@@ -73,61 +84,82 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.mainAct_search_bt:
                 search();
                 break;
+            case R.id.mainAct_update_bt:
+                update();
+                break;
+            case R.id.mainAct_delete_bt:
+                delete();
+                break;
+        }
+    }
+
+    private void update() {
+        String name = nameEt.getText().toString().trim();
+        if(people == null) {
+            Toast.makeText(this, "请选择一条记录", Toast.LENGTH_SHORT).show();
+            return;
+        }else {
+            people.setName(name);
+        }
+
+        DBRequest.getInstance().update(PeopleTable.TABLE_NAME, PeopleTable.toContentValues(people), "_id = ?", new String[] {people.getId()+""});
+
+        nameEt.setText("");
+        people = null;
+        search();
+    }
+
+    public void delete() {
+        if(people == null) {
+            Toast.makeText(this, "请选择一条记录", Toast.LENGTH_SHORT).show();
+            return;
+        }else {
+            DBRequest.getInstance().delete(PeopleTable.TABLE_NAME, "_id = ?", new String[] {people.getId()+""});
+            nameEt.setText("");
+            people = null;
         }
     }
 
     private void addPeople() {
         String name = nameEt.getText().toString().trim();
-        String age = ageEt.getText().toString().trim();
         if(name == null || "".equals(name)) {
             Toast.makeText(this, "姓名不能为空", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        if(age == null || "".equals(age)) {
-            Toast.makeText(this, "年龄不能为空", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        People people = new People(name, Integer.parseInt(age));
-        long row = DatabaseManager.getInstance().addPeople(people);
-        if(row > dataList.size()) {
-            /*dataList.add(people);
-            adapter.notifyItemInserted(dataList.size());*/
-            nameEt.setText("");
-            ageEt.setText("");
-        }else {
-            Toast.makeText(this, "新增数据失败", Toast.LENGTH_SHORT).show();
-        }
+        People people = new People(name, 25);
+        DBRequest.getInstance().add(PeopleTable.TABLE_NAME, PeopleTable.toContentValues(people));
+        nameEt.setText("");
+        search();
         Log.i(TAG, "Queries: " + queries.get());
     }
 
     private void search() {
         String name = nameEt.getText().toString().trim();
+
         if(name == null || "".equals(name)) {
-            DatabaseManager.getInstance().queryAll().subscribe(getSubscriber());
+            DBRequest.getInstance().getCollection(PeopleTable.TABLE_NAME, "SELECT * FROM " + PeopleTable.TABLE_NAME, null, PeopleTable.PERSON_MAPPER, getSubscriber());
         }else {
-            DatabaseManager.getInstance().queryPersonByName(name).subscribe(getSubscriber());
+            DBRequest.getInstance().getCollection(PeopleTable.TABLE_NAME, "SELECT * FROM " + PeopleTable.TABLE_NAME + " where name = ?", new String[]{name}, PeopleTable.PERSON_MAPPER, getSubscriber());
         }
     }
 
-    private Subscriber<List<People>> getSubscriber() {
-        return new Subscriber<List<People>>() {
+    private CollectionCallBack<People> getSubscriber() {
+        return new CollectionCallBack<People>() {
+            @Override
+            public void onFailure(int code, String message) {
+                Log.i(TAG, message);
+            }
+
             @Override
             public void onCompleted() {
                 Log.i(TAG, "onCompleted");
             }
 
             @Override
-            public void onError(Throwable e) {
-                Log.i(TAG, "onError");
-                e.printStackTrace();
-            }
-
-            @Override
-            public void onNext(List<People> peoples) {
+            public void onSuccess(List<People> datas) {
                 dataList.clear();
-                dataList.addAll(peoples);
+                dataList.addAll(datas);
                 adapter.notifyDataSetChanged();
                 queries.getAndIncrement();
             }

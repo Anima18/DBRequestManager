@@ -7,23 +7,20 @@
     android:orientation="vertical"
     tools:context="com.example.chris.sqlbritedemo.MainActivity">
 
+    <EditText
+        android:id="@+id/mainAct_name_et"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginRight="16dp"
+        android:layout_marginLeft="16dp"
+        android:hint="输入姓名"/>
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="16dp"
+        android:paddingRight="16dp"
+        android:paddingLeft="16dp"
         android:orientation="horizontal">
-        <EditText
-            android:id="@+id/mainAct_name_et"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:hint="输入姓名"/>
-        <EditText
-            android:id="@+id/mainAct_age_et"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:hint="输入年龄"/>
         <Button
             android:id="@+id/mainAct_add_bt"
             android:layout_width="wrap_content"
@@ -34,6 +31,16 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="查询"/>
+        <Button
+            android:id="@+id/mainAct_update_bt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="更新"/>
+        <Button
+            android:id="@+id/mainAct_delete_bt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="删除"/>
     </LinearLayout>
 
     <android.support.v7.widget.RecyclerView

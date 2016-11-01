@@ -10,6 +10,8 @@ import rx.functions.Func1;
  */
 
 public interface SqlBriteable {
+    String createTable();
+    String getTableName();
     ContentValues contentValues();
-    <T> Func1<Cursor, T> func1();
+    <T extends SqlBriteable> Func1<Cursor, T> func1();
 }

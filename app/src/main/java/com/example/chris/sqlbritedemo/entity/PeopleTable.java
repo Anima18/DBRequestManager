@@ -34,6 +34,8 @@ public class PeopleTable {
         @Override
         public People call(Cursor cursor) {
             People people = new People();
+            int id = cursor.getInt(cursor.getColumnIndexOrThrow(ID));
+            people.setId(id);
             String name = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_NAME));
             people.setName(name);
             int age = cursor.getInt(cursor.getColumnIndexOrThrow(COLUME_AGE));
