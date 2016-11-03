@@ -10,7 +10,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import com.example.chris.requestmanager.DBManager;
 import com.example.chris.requestmanager.DBRequest;
 import com.example.chris.requestmanager.entity.CollectionCallBack;
 import com.example.chris.sqlbritedemo.entity.People;
@@ -103,7 +102,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             people.setName(name);
         }
 
-        DBManager.getInstance().update(PeopleTable.TABLE_NAME, PeopleTable.toContentValues(people), "_id = ?", new String[] {people.getId()+""});
+        new DBRequest.Builder()
+                .tableName(PeopleTable.TABLE_NAME)
+                .contentValues(PeopleTable.toContentValues(people))
+                .whereClause("_id = ?")
+                .whereArgs(new String[] {people.getId()+""})
+                .update();
+        //DBManager.getInstance().update(PeopleTable.TABLE_NAME, PeopleTable.toContentValues(people), "_id = ?", new String[] {people.getId()+""});
 
         nameEt.setText("");
         people = null;
@@ -115,7 +120,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             Toast.makeText(this, "请选择一条记录", Toast.LENGTH_SHORT).show();
             return;
         }else {
-            DBManager.getInstance().delete(PeopleTable.TABLE_NAME, "_id = ?", new String[] {people.getId()+""});
+            //DBManager.getInstance().delete(PeopleTable.TABLE_NAME, "_id = ?", new String[] {people.getId()+""});
+            new DBRequest.Builder()
+                    .tableName(PeopleTable.TABLE_NAME)
+                    .whereClause("_id = ?")
+                    .whereArgs(new String[] {people.getId()+""})
+                    .delete();
             nameEt.setText("");
             people = null;
         }
@@ -129,11 +139,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         People people = new People(name, 25);
-        DBRequest
-                .create()
-                .tableName(PeopleTable.TABLE_NAME)
-                .contentValues(PeopleTable.toContentValues(people))
-                .add();
+        new DBRequest.Builder().tableName(PeopleTable.TABLE_NAME).contentValues(PeopleTable.toContentValues(people)).add();
 
         nameEt.setText("");
         search();
@@ -143,14 +149,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void search() {
         String name = nameEt.getText().toString().trim();
         if(name == null || "".equals(name)) {
-            DBRequest.create()
+            new DBRequest.Builder()
                     .tableName(PeopleTable.TABLE_NAME)
                     .querySql("SELECT * FROM " + PeopleTable.TABLE_NAME)
                     .mapper(PeopleTable.PERSON_MAPPER)
                     .getList(getSubscriber());
             //DBManager.getInstance().getCollection(PeopleTable.TABLE_NAME, "SELECT * FROM " + PeopleTable.TABLE_NAME, null, PeopleTable.PERSON_MAPPER, getSubscriber());
         }else {
-            DBRequest.create()
+            new DBRequest.Builder()
                     .tableName(PeopleTable.TABLE_NAME)
                     .querySql("SELECT * FROM " + PeopleTable.TABLE_NAME+ " where name = ?")
                     .whereArgs(new String[]{name})
