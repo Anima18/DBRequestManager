@@ -1,7 +1,7 @@
 # DBRequestManager
 封装SqlBrite，更方便操作Sqlite数据，提供通用的增删改查接口.   
  
-1. [创建实体类](https://github.com/Anima18/DBRequestManager#createBean)  
+1. [创建实体类](https://github.com/Anima18/DBRequestManager/blob/master/README.md#createBean)  
 2. [创建表结构](#createTable)  
 3. [创建SQLOpenHelper](#createHelper)  
 4. [初始化DBManager](#initDB)  
