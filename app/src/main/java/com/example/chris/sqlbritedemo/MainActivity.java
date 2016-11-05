@@ -154,7 +154,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     .querySql("SELECT * FROM " + PeopleTable.TABLE_NAME)
                     .mapper(PeopleTable.PERSON_MAPPER)
                     .getList(getSubscriber());
-            //DBManager.getInstance().getCollection(PeopleTable.TABLE_NAME, "SELECT * FROM " + PeopleTable.TABLE_NAME, null, PeopleTable.PERSON_MAPPER, getSubscriber());
         }else {
             new DBRequest.Builder()
                     .tableName(PeopleTable.TABLE_NAME)
@@ -162,7 +161,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     .whereArgs(new String[]{name})
                     .mapper(PeopleTable.PERSON_MAPPER)
                     .getList(getSubscriber());
-            //DBManager.getInstance().getCollection(PeopleTable.TABLE_NAME, "SELECT * FROM " + PeopleTable.TABLE_NAME + " where name = ?", new String[]{name}, PeopleTable.PERSON_MAPPER, getSubscriber());
         }
     }
 

@@ -29,7 +29,7 @@ public class PeopleTable {
                     + "UNIQUE (" + COLUMN_NAME + ")  ON CONFLICT REPLACE"
                     + " ); ";
 
-    // 响应式的查询,根据表中的row生成一个对象
+    // 根据表中的row生成一个对象
     public static Func1<Cursor, People> PERSON_MAPPER = new Func1<Cursor, People>() {
         @Override
         public People call(Cursor cursor) {
@@ -44,6 +44,7 @@ public class PeopleTable {
         }
     };
 
+    // 根据对象生成一条数据库记录
     public static ContentValues toContentValues(People person) {
         ContentValues values = new ContentValues();
         values.put(COLUMN_NAME, person.getName());
