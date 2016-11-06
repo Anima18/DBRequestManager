@@ -1,5 +1,25 @@
 apply plugin: 'com.android.library'
 
+ext {
+    bintrayRepo = 'maven'
+    bintrayName = 'DBRequest'
+
+    publishedGroupId = 'com.example.chris.requestmanager'
+    libraryName = 'db-request'
+    artifact = 'db-request'
+
+    libraryDescription = 'db-request'
+
+    siteUrl = 'https://github.com/Anima18/DBRequestManager'
+    gitUrl = 'https://github.com/Anima18/DBRequestManager.git'
+
+    libraryVersion = '1.0.1'
+
+    licenseName = 'The Apache Software License, Version 2.0'
+    licenseUrl = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+    allLicenses = ["Apache-2.0"]
+}
+
 android {
     compileSdkVersion 24
     buildToolsVersion "24.0.0"
@@ -31,4 +51,6 @@ dependencies {
     compile 'io.reactivex:rxjava:1.1.5'
     compile 'io.reactivex:rxandroid:1.2.0'
     compile 'com.squareup.sqlbrite:sqlbrite:0.6.3'
+
 }
+apply from: "https://raw.githubusercontent.com/xiaopansky/android-library-publish-to-jcenter/master/bintrayUpload.gradle"
